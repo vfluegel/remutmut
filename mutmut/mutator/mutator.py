@@ -23,7 +23,6 @@ class Mutator:
         self.context = context
         self.helper = MutatorHelper()
 
-
     def mutate(self) -> Tuple[str, int]:
         """
         :return: tuple of mutated source code and number of mutations performed
