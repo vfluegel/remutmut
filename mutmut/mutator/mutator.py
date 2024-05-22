@@ -16,10 +16,6 @@ except ImportError:
 from mutmut.mutator.mutator_helper import MutatorHelper
 
 
-class SkipException(Exception):
-    pass
-
-
 class Mutator:
 
     def __init__(self, context: Context):
