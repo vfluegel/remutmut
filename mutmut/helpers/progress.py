@@ -19,6 +19,7 @@ class Progress:
     def print(self):
         if self.no_progress:
             return
+        print_status = self.status_printer()
         print_status('{}/{}  {} {}  {} {}  {} {}  {} {}  {} {}'.format(
             self.progress,
             self.total,
@@ -85,26 +86,23 @@ class Progress:
             code = code | 8
         return code
 
+    @staticmethod
+    def status_printer():
+        """Manage the printing and in-place updating of a line of characters
 
-def status_printer():
-    """Manage the printing and in-place updating of a line of characters
+        .. note::
+            If the string is longer than a line, then in-place updating may not
+            work (it will print a new line at each refresh).
+        """
+        last_len = [0]
+        spinner = itertools.cycle('⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏')
 
-    .. note::
-        If the string is longer than a line, then in-place updating may not
-        work (it will print a new line at each refresh).
-    """
-    last_len = [0]
+        def p(s):
+            s = next(spinner) + ' ' + s
+            len_s = len(s)
+            output = '\r' + s + (' ' * max(last_len[0] - len_s, 0))
+            sys.stdout.write(output)
+            sys.stdout.flush()
+            last_len[0] = len_s
 
-    def p(s):
-        s = next(spinner) + ' ' + s
-        len_s = len(s)
-        output = '\r' + s + (' ' * max(last_len[0] - len_s, 0))
-        sys.stdout.write(output)
-        sys.stdout.flush()
-        last_len[0] = len_s
-
-    return p
-
-
-spinner = itertools.cycle('⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏')
-print_status = status_printer()
+        return p
