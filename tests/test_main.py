@@ -21,7 +21,7 @@ from mutmut import __version__
 from mutmut.mutator.mutator_helper import MutatorHelper
 from mutmut.tester.tester import Tester
 from mutmut.helpers.progress import Progress
-from mutmut.helpers.progress import MUTANT_STATUSES
+from mutmut.constants import MUTANT_STATUSES
 from mutmut.cli.helper.utils import python_source_files, read_coverage_data
 from mutmut.__main__ import climain
 

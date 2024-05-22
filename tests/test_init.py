@@ -9,7 +9,7 @@ from mutmut.mutations.name_mutation import NameMutation
 from mutmut.mutator.mutator import Mutator
 from mutmut.tester.tester import Tester
 from mutmut.cli.helper.utils import read_patch_data
-from mutmut.helpers.progress import OK_KILLED
+from mutmut.constants import OK_KILLED
 from mutmut.helpers.context import Context
 
 

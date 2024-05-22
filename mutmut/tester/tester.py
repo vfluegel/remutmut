@@ -8,13 +8,15 @@ from threading import (
     Thread,
 )
 from time import time
-from typing import Callable, Dict, List
+from typing import Callable, Dict, List, Optional
+
 
 from mutmut.helpers.config import Config
 from mutmut.helpers.context import Context
-from mutmut.helpers.progress import *
+from mutmut.helpers.progress import Progress
 from mutmut.helpers.relativemutationid import RelativeMutationID
 from mutmut.mutator.mutator import Mutator
+from mutmut.constants import UNTESTED
 
 from mutmut.tester.queue_manager import QueueManager
 from mutmut.tester.tester_helper import TesterHelper, SkipException

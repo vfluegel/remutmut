@@ -1,6 +1,7 @@
 import os
 import shlex
 import subprocess
+import sys
 from io import (
     TextIOBase,
 )
@@ -9,7 +10,7 @@ from time import time
 
 from mutmut.helpers.config import Config
 from mutmut.helpers.context import Context
-from mutmut.helpers.progress import *
+from mutmut.constants import SKIPPED, OK_SUSPICIOUS, BAD_SURVIVED, OK_KILLED
 
 if os.getcwd() not in sys.path:
     sys.path.insert(0, os.getcwd())

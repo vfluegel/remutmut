@@ -3,7 +3,8 @@
 import pytest
 from parso import parse
 
-from mutmut.mutator.mutator import Mutator, ALL
+from mutmut.mutator.mutator import Mutator
+from mutmut.constants import ALL
 from mutmut.helpers.relativemutationid import RelativeMutationID
 from mutmut.helpers.context import Context
 from mutmut.mutations.name_mutation import NameMutation

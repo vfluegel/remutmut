@@ -2,7 +2,8 @@ from copy import copy as copy_obj
 from typing import Dict, List
 from mutmut.helpers.config import Config
 from mutmut.helpers.context import Context
-from mutmut.helpers.progress import *
+from mutmut.helpers.progress import Progress
+from mutmut.constants import UNTESTED
 from mutmut.helpers.relativemutationid import RelativeMutationID
 
 
