@@ -19,18 +19,6 @@ except ImportError:
 class MutatorHelper:
 
     def __init__(self):
-        self.dunder_whitelist = [
-            'all',
-            'version',
-            'title',
-            'package_name',
-            'author',
-            'description',
-            'email',
-            'version',
-            'license',
-            'copyright',
-        ]
 
         self.newline = {'formatting': [], 'indent': '', 'type': 'endl', 'value': ''}
 
@@ -50,53 +38,6 @@ class MutatorHelper:
             'annassign': ("children", ExpressionMutation),
         }
 
-    def is_a_dunder_whitelist_node(self, node):
-        if node.type != 'expr_stmt':
-            return False
-
-        if node.children[0].type != 'name':
-            return False
-
-        if not node.children[0].value.startswith('__'):
-            return False
-
-        if not node.children[0].value.endswith('__'):
-            return False
-
-        return node.children[0].value[2:-2] in self.dunder_whitelist
-
-    def is_return_annotation_start(self, node):
-        return self.check_node_type_and_value(node, 'operator', '->')
-
-    def is_return_annotation_end(self, node):
-        return self.check_node_type_and_value(node, 'operator', ':')
-
-    def get_return_annotation_started(self, node, return_annotation_started):
-        if self.is_return_annotation_start(node):
-            return_annotation_started = True
-
-        if return_annotation_started and self.is_return_annotation_end(node):
-            return_annotation_started = False
-
-        return return_annotation_started
-
-    @staticmethod
-    def is_special_node(node):
-        return node.type in ('tfpdef', 'import_from', 'import_name')
-
-    @staticmethod
-    def is_dynamic_import_node(node):
-        return node.type == 'atom_expr' and node.children and node.children[0].type == 'name' and node.children[
-            0].value == '__import__'
-
-    @staticmethod
-    def should_update_line_index(node, context):
-        return node.start_pos[0] - 1 != context.current_line_index
-
-    @staticmethod
-    def is_pure_annotation(node):
-        return node.type == 'annassign' and len(node.children) == 2
-
     @staticmethod
     def wrap_or_return_mutation_instance(new, old):
         if isinstance(new, list) and not isinstance(old, list):
@@ -104,7 +45,3 @@ class MutatorHelper:
             return new
 
         return [new]
-
-    @staticmethod
-    def check_node_type_and_value(node, type, value):
-        return node.type == type and node.value == value
