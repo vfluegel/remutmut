@@ -25,10 +25,6 @@ except ImportError:
     mutmut_config = None
 
 
-class SkipException(Exception):
-    pass
-
-
 class Mutator:
 
     def __init__(self, context: Context):

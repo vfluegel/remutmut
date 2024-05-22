@@ -20,13 +20,6 @@ from mutmut.mutator.mutator import Mutator
 from mutmut.queue_manager import QueueManager
 from mutmut.tester.tester_helper import TesterHelper, SkipException
 
-if os.getcwd() not in sys.path:
-    sys.path.insert(0, os.getcwd())
-try:
-    import mutmut_config
-except ImportError:
-    mutmut_config = None
-
 CYCLE_PROCESS_AFTER = 100
 
 
@@ -133,7 +126,7 @@ class Tester:
                     mutants_queue.put(('end', None))
                     break
 
-                status = self.run_mutation(context, feedback,  test_lock)
+                status = self.run_mutation(context, feedback, test_lock)
 
                 results_queue.put(('status', status, context.filename, context.mutation_id))
                 count += 1
@@ -274,5 +267,5 @@ class Tester:
             return self.hammett_tests_pass(config, callback)
 
         returncode = self.popen_streaming_output(config.test_command, callback,
-                                            timeout=config.baseline_time_elapsed * 10)
+                                                 timeout=config.baseline_time_elapsed * 10)
         return returncode not in (1, 2)
