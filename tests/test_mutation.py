@@ -1,14 +1,36 @@
 # -*- coding: utf-8 -*-
 
 import pytest
+from pytest import raises
 from parso import parse
 
-from mutmut.mutator.mutator import Mutator
-from mutmut.constants import ALL
+from mutmut.mutator.mutator import Mutator, ALL
 from mutmut.helpers.relativemutationid import RelativeMutationID
 from mutmut.helpers.context import Context
 from mutmut.mutations.name_mutation import NameMutation
+from mutmut.mutations.lambda_mutation import LambdaMutation
 from mutmut.helpers.astpattern import ASTPattern
+
+
+def test_partition_node_list_no_nodes():
+    with raises(AssertionError):
+        lambda_mutator = LambdaMutation()
+        lambda_mutator.partition_node_list([], None)
+
+
+def test_name_mutation_simple_mutants():
+    name_mutator = NameMutation()
+    assert name_mutator.mutate(None, 'True') == 'False'
+
+
+def test_context_exclude_line():
+    source = "__import__('pkg_resources').declare_namespace(__name__)\n"
+    mutator = Mutator(Context(source=source))
+    assert mutator.mutate() == (source, 0)
+
+    source = "__all__ = ['hi']\n"
+    mutator = Mutator(Context(source=source))
+    assert mutator.mutate() == (source, 0)
 
 
 def test_matches_py3():

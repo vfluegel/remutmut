@@ -4,310 +4,27 @@ import os
 import subprocess
 import sys
 import xml.etree.ElementTree as ET
-from os import (
-    mkdir,
-)
-from os.path import join
-from time import time
-from unittest.mock import (
-    call,
-    MagicMock, ANY
-)
+from unittest.mock import MagicMock, ANY
 
 import pytest
 from click.testing import CliRunner
 
+from tests.filesystem_fixture_setup import (
+    filesystem,
+    surviving_mutants_filesystem,
+    single_mutant_filesystem,
+    file_to_mutate_contents,
+    test_file_contents,
+    EXPECTED_MUTANTS)
 from mutmut import __version__
 from mutmut.mutator.mutator_helper import MutatorHelper
 from mutmut.tester.tester import Tester
-from mutmut.helpers.progress import Progress
 from mutmut.constants import MUTANT_STATUSES
-from mutmut.cli.helper.utils import python_source_files, read_coverage_data
 from mutmut.__main__ import climain
-
-file_to_mutate_lines = [
-    "def foo(a, b):",
-    "    return a < b",
-    "c = 1",
-    "c += 1",
-    "e = 1",
-    "f = 3",
-    "d = dict(e=f)",
-    "g: int = 2",
-]
-
-EXPECTED_MUTANTS = 14
-
-PYTHON = '"{}"'.format(sys.executable)
-
-file_to_mutate_contents = '\n'.join(file_to_mutate_lines) + '\n'
-
-test_file_contents = '''
-from foo import *
-
-def test_foo():
-   assert foo(1, 2) is True
-   assert foo(2, 2) is False
-
-   assert c == 2
-   assert e == 1
-   assert f == 3
-   assert d == dict(e=f)
-   assert g == 2
-'''
-
-
-@pytest.fixture
-def filesystem(tmpdir):
-    create_filesystem(tmpdir, file_to_mutate_contents, test_file_contents)
-
-    yield tmpdir
-
-    # This is a hack to get pony to forget about the old db file
-    # otherwise Pony thinks we've already created the tables
-    import mutmut.cache
-    mutmut.cache.db.provider = None
-    mutmut.cache.db.schema = None
-
-
-@pytest.fixture
-def single_mutant_filesystem(tmpdir):
-    create_filesystem(tmpdir, "def foo():\n    return 1\n", "from foo import *\ndef test_foo():\n    assert foo() == 1")
-
-    yield tmpdir
-
-    # This is a hack to get pony to forget about the old db file
-    # otherwise Pony thinks we've already created the tables
-    import mutmut.cache
-    mutmut.cache.db.provider = None
-    mutmut.cache.db.schema = None
-
-
-@pytest.fixture
-def surviving_mutants_filesystem(tmpdir):
-    foo_py = """
-def foo(a, b):
-    result = a + b
-    return result
-"""
-
-    test_py = """
-def test_nothing(): assert True
-"""
-
-    create_filesystem(tmpdir, foo_py, test_py)
-
-    yield tmpdir
-
-    # This is a hack to get pony to forget about the old db file
-    # otherwise Pony thinks we've already created the tables
-    import mutmut.cache
-    mutmut.cache.db.provider = None
-    mutmut.cache.db.schema = None
-
-
-def create_filesystem(tmpdir, file_to_mutate_contents, test_file_contents):
-    test_dir = str(tmpdir)
-    os.chdir(test_dir)
-
-    # hammett is almost 5x faster than pytest. Let's use that instead.
-    with open(join(test_dir, 'setup.cfg'), 'w') as f:
-        f.write("""
-[mutmut]
-runner=python -m hammett -x
-""")
-
-    with open(join(test_dir, "foo.py"), 'w') as f:
-        f.write(file_to_mutate_contents)
-
-    os.mkdir(join(test_dir, "tests"))
-
-    with open(join(test_dir, "tests", "test_foo.py"), 'w') as f:
-        f.write(test_file_contents)
 
 
 def test_print_version():
     assert CliRunner().invoke(climain, ['version']).output.strip() == f'mutmut version {__version__}'
-
-
-def test_compute_return_code():
-    # mock of Config for ease of testing
-    class MockProgress(Progress):
-        def __init__(self, killed_mutants, surviving_mutants,
-                     surviving_mutants_timeout, suspicious_mutants, **_):
-            super(MockProgress, self).__init__(total=0, output_legend={}, no_progress=False)
-            self.killed_mutants = killed_mutants
-            self.surviving_mutants = surviving_mutants
-            self.surviving_mutants_timeout = surviving_mutants_timeout
-            self.suspicious_mutants = suspicious_mutants
-
-    assert (MockProgress(0, 0, 0, 0)
-            .compute_exit_code()) == 0
-    assert (MockProgress(0, 0, 0, 1)
-            .compute_exit_code()) == 8
-    assert (MockProgress(0, 0, 1, 0)
-            .compute_exit_code()) == 4
-    assert (MockProgress(0, 0, 1, 1)
-            .compute_exit_code()) == 12
-    assert (MockProgress(0, 1, 0, 0)
-            .compute_exit_code()) == 2
-    assert (MockProgress(0, 1, 0, 1)
-            .compute_exit_code()) == 10
-    assert (MockProgress(0, 1, 1, 0)
-            .compute_exit_code()) == 6
-    assert (MockProgress(0, 1, 1, 1)
-            .compute_exit_code()) == 14
-
-    assert (MockProgress(1, 0, 0, 0)
-            .compute_exit_code()) == 0
-    assert (MockProgress(1, 0, 0, 1)
-            .compute_exit_code()) == 8
-    assert (MockProgress(1, 0, 1, 0)
-            .compute_exit_code()) == 4
-    assert (MockProgress(1, 0, 1, 1)
-            .compute_exit_code()) == 12
-    assert (MockProgress(1, 1, 0, 0)
-            .compute_exit_code()) == 2
-    assert (MockProgress(1, 1, 0, 1)
-            .compute_exit_code()) == 10
-    assert (MockProgress(1, 1, 1, 0)
-            .compute_exit_code()) == 6
-    assert (MockProgress(1, 1, 1, 1)
-            .compute_exit_code()) == 14
-
-    assert (MockProgress(0, 0, 0, 0)
-            .compute_exit_code(Exception())) == 1
-    assert (MockProgress(0, 0, 0, 1)
-            .compute_exit_code(Exception())) == 9
-    assert (MockProgress(0, 0, 1, 0)
-            .compute_exit_code(Exception())) == 5
-    assert (MockProgress(0, 0, 1, 1)
-            .compute_exit_code(Exception())) == 13
-    assert (MockProgress(0, 1, 0, 0)
-            .compute_exit_code(Exception())) == 3
-    assert (MockProgress(0, 1, 0, 1)
-            .compute_exit_code(Exception())) == 11
-    assert (MockProgress(0, 1, 1, 0)
-            .compute_exit_code(Exception())) == 7
-    assert (MockProgress(0, 1, 1, 1)
-            .compute_exit_code(Exception())) == 15
-
-    assert (MockProgress(1, 0, 0, 0)
-            .compute_exit_code(Exception())) == 1
-    assert (MockProgress(1, 0, 0, 1)
-            .compute_exit_code(Exception())) == 9
-    assert (MockProgress(1, 0, 1, 0)
-            .compute_exit_code(Exception())) == 5
-    assert (MockProgress(1, 0, 1, 1)
-            .compute_exit_code(Exception())) == 13
-    assert (MockProgress(1, 1, 0, 0)
-            .compute_exit_code(Exception())) == 3
-    assert (MockProgress(1, 1, 0, 1)
-            .compute_exit_code(Exception())) == 11
-    assert (MockProgress(1, 1, 1, 0)
-            .compute_exit_code(Exception())) == 7
-    assert (MockProgress(1, 1, 1, 1)
-            .compute_exit_code(Exception())) == 15
-
-    assert (MockProgress(0, 0, 0, 0)
-            .compute_exit_code(ci=True)) == 0
-    assert (MockProgress(1, 1, 1, 1)
-            .compute_exit_code(ci=True)) == 0
-    assert (MockProgress(0, 0, 0, 0)
-            .compute_exit_code(Exception(), ci=True)) == 1
-    assert (MockProgress(1, 1, 1, 1)
-            .compute_exit_code(Exception(), ci=True)) == 1
-
-
-def test_read_coverage_data(filesystem):
-    assert read_coverage_data() == {}
-
-
-@pytest.mark.parametrize(
-    "expected, source_path, tests_dirs",
-    [
-        (["foo.py"], "foo.py", []),
-        ([os.path.join(".", "foo.py"),
-          os.path.join(".", "tests", "test_foo.py")], ".", []),
-        ([os.path.join(".", "foo.py")], ".", [os.path.join(".", "tests")])
-    ]
-)
-def test_python_source_files(expected, source_path, tests_dirs, filesystem):
-    assert list(python_source_files(source_path, tests_dirs)) == expected
-
-
-def test_python_source_files__with_paths_to_exclude(tmpdir):
-    tmpdir = str(tmpdir)
-    # arrange
-    paths_to_exclude = ['entities*']
-
-    project_dir = join(tmpdir, 'project')
-    service_dir = join(project_dir, 'services')
-    entities_dir = join(project_dir, 'entities')
-    mkdir(project_dir)
-    mkdir(service_dir)
-    mkdir(entities_dir)
-
-    with open(join(service_dir, 'entities.py'), 'w'):
-        pass
-
-    with open(join(service_dir, 'main.py'), 'w'):
-        pass
-
-    with open(join(service_dir, 'utils.py'), 'w'):
-        pass
-
-    with open(join(entities_dir, 'user.py'), 'w'):
-        pass
-
-    # act, assert
-    assert set(python_source_files(project_dir, [], paths_to_exclude)) == {
-        os.path.join(project_dir, 'services', 'main.py'),
-        os.path.join(project_dir, 'services', 'utils.py'),
-    }
-
-
-def test_popen_streaming_output_timeout():
-    start = time()
-    tester = Tester()
-    with pytest.raises(TimeoutError):
-        tester.popen_streaming_output(
-            PYTHON + ' -c "import time; time.sleep(4)"',
-            lambda line: line, timeout=0.1,
-        )
-
-    assert (time() - start) < 3
-
-
-def test_popen_streaming_output_stream():
-    mock = MagicMock()
-    tester = Tester()
-    tester.popen_streaming_output(
-        PYTHON + ' -c "print(\'first\'); print(\'second\')"',
-        callback=mock
-    )
-    if os.name == 'nt':
-        mock.assert_has_calls([call('first\r\n'), call('second\r\n')])
-    else:
-        mock.assert_has_calls([call('first\n'), call('second\n')])
-
-    mock = MagicMock()
-    tester = Tester()
-    tester.popen_streaming_output(
-        PYTHON + ' -c "import time; print(\'first\'); print(\'second\'); print(\'third\')"',
-        callback=mock
-    )
-    if os.name == 'nt':
-        mock.assert_has_calls([call('first\r\n'), call('second\r\n'), call('third\r\n')])
-    else:
-        mock.assert_has_calls([call('first\n'), call('second\n'), call('third\n')])
-
-    mock = MagicMock()
-    tester = Tester()
-    tester.popen_streaming_output(
-        PYTHON + ' -c "exit(0);"',
-        callback=mock)
-    mock.assert_not_called()
 
 
 def test_simple_apply(filesystem):
@@ -381,14 +98,7 @@ def test_full_run_no_surviving_mutants_junit(filesystem):
     print(repr(result.output))
     assert result.exit_code == 0
 
-    result = CliRunner().invoke(climain, ['junitxml'], catch_exceptions=False)
-    print(repr(result.output))
-    assert result.exit_code == 0
-    root = ET.fromstring(result.output.strip())
-    assert int(root.attrib['tests']) == EXPECTED_MUTANTS
-    assert int(root.attrib['failures']) == 0
-    assert int(root.attrib['errors']) == 0
-    assert int(root.attrib['disabled']) == 0
+    surviving_junit_helper(filesystem, 0, 0)
 
 
 def test_mutant_only_killed_after_rerun(filesystem):
@@ -470,23 +180,30 @@ Survived 🙁 (1)
 """.strip()
 
 
-def test_full_run_one_surviving_mutant_junit(filesystem):
+def surviving_junit_helper(filesystem, failures, exit_code):
     with open(os.path.join(str(filesystem), "tests", "test_foo.py"), 'w') as f:
         f.write(test_file_contents.replace('assert foo(2, 2) is False\n', ''))
 
     result = CliRunner().invoke(climain, ['run', '--paths-to-mutate=foo.py', "--test-time-base=15.0"],
                                 catch_exceptions=False)
     print(repr(result.output))
-    assert result.exit_code == 2
+    assert result.exit_code == exit_code
+    check_junit_output(failures)
 
+
+def check_junit_output(failures):
     result = CliRunner().invoke(climain, ['junitxml'], catch_exceptions=False)
     print(repr(result.output))
     assert result.exit_code == 0
     root = ET.fromstring(result.output.strip())
     assert int(root.attrib['tests']) == EXPECTED_MUTANTS
-    assert int(root.attrib['failures']) == 1
+    assert int(root.attrib['failures']) == failures
     assert int(root.attrib['errors']) == 0
     assert int(root.attrib['disabled']) == 0
+
+
+def test_full_run_one_surviving_mutant_junit(filesystem):
+    surviving_junit_helper(filesystem, 1, 2)
 
 
 def test_full_run_all_suspicious_mutant(filesystem):
@@ -518,34 +235,12 @@ def test_full_run_all_suspicious_mutant_junit(filesystem):
                                 catch_exceptions=False)
     print(repr(result.output))
     assert result.exit_code == 8
-    result = CliRunner().invoke(climain, ['junitxml'], catch_exceptions=False)
-    print(repr(result.output))
-    assert result.exit_code == 0
-    root = ET.fromstring(result.output.strip())
-    assert int(root.attrib['tests']) == EXPECTED_MUTANTS
-    assert int(root.attrib['failures']) == 0
-    assert int(root.attrib['errors']) == 0
-    assert int(root.attrib['disabled']) == 0
+    check_junit_output(0)
 
 
 def test_use_coverage(filesystem):
-    with open(os.path.join(str(filesystem), "tests", "test_foo.py"), 'w') as f:
-        f.write(test_file_contents.replace('assert foo(2, 2) is False\n', ''))
-
     # first validate that mutmut without coverage detects a surviving mutant
-    result = CliRunner().invoke(climain, ['run', '--paths-to-mutate=foo.py', "--test-time-base=15.0"],
-                                catch_exceptions=False)
-    print(repr(result.output))
-    assert result.exit_code == 2
-
-    result = CliRunner().invoke(climain, ['junitxml'], catch_exceptions=False)
-    print(repr(result.output))
-    assert result.exit_code == 0
-    root = ET.fromstring(result.output.strip())
-    assert int(root.attrib['tests']) == EXPECTED_MUTANTS
-    assert int(root.attrib['failures']) == 1
-    assert int(root.attrib['errors']) == 0
-    assert int(root.attrib['disabled']) == 0
+    surviving_junit_helper(filesystem, 1, 2)
 
     # generate a `.coverage` file by invoking pytest
     subprocess.run([sys.executable, "-m", "pytest", "--cov=.", "foo.py"])
@@ -774,7 +469,7 @@ def test_html_output(surviving_mutants_filesystem):
     result = CliRunner().invoke(climain, ['run', '--paths-to-mutate=foo.py', "--test-time-base=15.0"],
                                 catch_exceptions=False)
     print(repr(result.output))
-    result = CliRunner().invoke(climain, ['html'])
+    CliRunner().invoke(climain, ['html'])
     assert os.path.isfile("html/index.html")
     with open("html/index.html") as f:
         assert f.read() == (
@@ -789,7 +484,7 @@ def test_html_custom_output(surviving_mutants_filesystem):
     result = CliRunner().invoke(climain, ['run', '--paths-to-mutate=foo.py', "--test-time-base=15.0"],
                                 catch_exceptions=False)
     print(repr(result.output))
-    result = CliRunner().invoke(climain, ['html', '--directory', 'htmlmut'])
+    CliRunner().invoke(climain, ['html', '--directory', 'htmlmut'])
     assert os.path.isfile("htmlmut/index.html")
     with open("htmlmut/index.html") as f:
         assert f.read() == (

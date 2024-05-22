@@ -1,93 +1,8 @@
 import os
 from pathlib import Path
-from time import sleep
-from pytest import raises, fixture
-from unittest.mock import MagicMock, patch
+from pytest import fixture
 
-from mutmut.mutations.lambda_mutation import LambdaMutation
-from mutmut.mutations.name_mutation import NameMutation
-from mutmut.mutator.mutator import Mutator
-from mutmut.tester.tester import Tester
 from mutmut.cli.helper.utils import read_patch_data
-from mutmut.constants import OK_KILLED
-from mutmut.helpers.context import Context
-
-
-def test_partition_node_list_no_nodes():
-    with raises(AssertionError):
-        lambda_mutator = LambdaMutation()
-        lambda_mutator.partition_node_list([], None)
-
-
-def test_name_mutation_simple_mutants():
-    name_mutator = NameMutation()
-    assert name_mutator.mutate(None, 'True') == 'False'
-
-
-def test_context_exclude_line():
-    source = "__import__('pkg_resources').declare_namespace(__name__)\n"
-    mutator = Mutator(Context(source=source))
-    assert mutator.mutate() == (source, 0)
-
-    source = "__all__ = ['hi']\n"
-    mutator = Mutator(Context(source=source))
-    assert mutator.mutate() == (source, 0)
-
-
-def check_mutants_stub(**kwargs):
-    def run_mutation_stub(*_):
-        sleep(0.15)
-        return OK_KILLED
-
-    tester = Tester()
-    check_mutants_original = tester.check_mutants
-    with patch('mutmut.tester.tester.Tester.run_mutation', run_mutation_stub):
-        check_mutants_original(**kwargs)
-
-
-class ConfigStub:
-    hash_of_tests = None
-
-
-config_stub = ConfigStub()
-
-
-def test_run_mutation_tests_thread_synchronization(monkeypatch):
-    # arrange
-    total_mutants = 3
-    cycle_process_after = 1
-
-    tester = Tester()
-
-    def queue_mutants_stub(**kwargs):
-        for _ in range(total_mutants):
-            kwargs['mutants_queue'].put(('mutant', Context(config=config_stub)))
-        kwargs['mutants_queue'].put(('end', None))
-
-    monkeypatch.setattr(tester.queue_manager, 'queue_mutants', queue_mutants_stub)
-
-    def update_mutant_status_stub(**_):
-        sleep(0.1)
-
-    monkeypatch.setattr(tester, 'check_mutants', check_mutants_stub)
-    monkeypatch.setattr('mutmut.cache.update_mutant_status', update_mutant_status_stub)
-    monkeypatch.setattr('mutmut.tester.tester.CYCLE_PROCESS_AFTER', cycle_process_after)
-
-    progress_mock = MagicMock()
-    progress_mock.registered_mutants = 0
-
-    def progress_mock_register(*_):
-        progress_mock.registered_mutants += 1
-
-    progress_mock.register = progress_mock_register
-
-    # act
-    tester.run_mutation_tests(config_stub, progress_mock, 2, None)
-
-    # assert
-    assert progress_mock.registered_mutants == total_mutants
-
-    tester.queue_manager.close_active_queues()
 
 
 @fixture
@@ -104,7 +19,7 @@ def test_read_patch_data_new_empty_file_not_in_the_list(testpatches_path: Path):
     new_empty_file_changes = read_patch_data(new_empty_file_patch)
 
     # assert
-    assert not new_empty_file_name in new_empty_file_changes
+    assert new_empty_file_name not in new_empty_file_changes
 
 
 def test_read_patch_data_removed_empty_file_not_in_the_list(testpatches_path: Path):
