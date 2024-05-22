@@ -18,13 +18,13 @@ class QueueManager:
         for queue in self._active_queues:
             queue.close()
 
-    def queue_mutants(self,
-            *,
-            progress: Progress,
-            config: Config,
-            mutants_queue,
-            mutations_by_file: Dict[str, List[RelativeMutationID]],
-    ):
+    @staticmethod
+    def queue_mutants(*,
+                      progress: Progress,
+                      config: Config,
+                      mutants_queue,
+                      mutations_by_file: Dict[str, List[RelativeMutationID]],
+                      ):
         from mutmut.cache import get_cached_mutation_statuses
 
         try:
