@@ -88,11 +88,7 @@ class Mutator:
 
         new_list = self.helper.wrap_or_return_mutation_instance(new, old)
 
-        # TODO: look into why and if we need this
-        is_optimized = self.alternate_mutations(new_list, old, node, node_attribute)
-
-        if is_optimized:
-            return
+        self.alternate_mutations(new_list, old, node, node_attribute)
 
     def alternate_mutations(self, new_list, old, node, node_attribute):
         # go through the alternate mutations in reverse as they may have
@@ -105,9 +101,7 @@ class Mutator:
 
             # this is just an optimization to stop early
             if self.stop_early():
-                return True
-
-        return False
+                return
 
     def apply_mutation_and_update_context(self, new, old, node, node_attribute):
         if new is None or new == old:
