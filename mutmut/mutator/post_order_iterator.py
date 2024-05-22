@@ -21,32 +21,33 @@ class PostOrderIterator(MutatorIterator):
 
             self._collections[self._current_position] = (current, True)
 
-            if hasattr(current, 'children'):
+            if not hasattr(current, 'children'):
+                continue
 
-                for i, child in enumerate(current.children):
+            for i, child in enumerate(current.children):
 
-                    return_annotation_started = self._get_return_annotation_started(child, return_annotation_started)
+                return_annotation_started = self._get_return_annotation_started(child, return_annotation_started)
 
-                    if return_annotation_started:
-                        continue
+                if return_annotation_started:
+                    continue
 
-                    if self._is_special_node(child):
-                        continue
+                if self._is_special_node(child):
+                    continue
 
-                    if self._is_dynamic_import_node(child):
-                        continue
+                if self._is_dynamic_import_node(child):
+                    continue
 
-                    if self._should_update_line_index(child):
-                        self._context.current_line_index = child.start_pos[0] - 1
-                        self._context.index = 0
+                if self._should_update_line_index(child):
+                    self._context.current_line_index = child.start_pos[0] - 1
+                    self._context.index = 0
 
-                    if self._is_a_dunder_whitelist_node(child):
-                        continue
+                if self._is_a_dunder_whitelist_node(child):
+                    continue
 
-                    if self._is_pure_annotation(child):
-                        continue
+                if self._is_pure_annotation(child):
+                    continue
 
-                    self._collections.insert(len(self._collections) - i, (child, False))
-                    self._current_position += 1
+                self._collections.insert(len(self._collections) - i, (child, False))
+                self._current_position += 1
 
         raise StopIteration
