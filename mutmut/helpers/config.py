@@ -1,4 +1,3 @@
-import os
 from configparser import ConfigParser
 from dataclasses import dataclass, field
 from functools import wraps
@@ -31,27 +30,6 @@ class Config:
 
     def __post_init__(self):
         self._default_test_command = self.test_command
-
-
-def should_exclude(context, config: Optional[Config]):
-        if config is None or config.covered_lines_by_filename is None:
-            return False
-
-        try:
-            covered_lines = config.covered_lines_by_filename[context.filename]
-        except KeyError:
-            if config.coverage_data is not None:
-                covered_lines = config.coverage_data.get(os.path.abspath(context.filename))
-                config.covered_lines_by_filename[context.filename] = covered_lines
-            else:
-                covered_lines = None
-
-        if covered_lines is None:
-            return True
-        current_line = context.current_line_index + 1
-        if current_line not in covered_lines:
-            return True
-        return False
 
 
 def config_from_file(**defaults):

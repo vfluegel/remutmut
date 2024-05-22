@@ -1,6 +1,7 @@
 from typing import Optional
+import os
 
-from mutmut.helpers.config import Config, should_exclude
+from mutmut.helpers.config import Config
 from mutmut.helpers.relativemutationid import RelativeMutationID
 from mutmut.constants import ALL
 
@@ -33,7 +34,7 @@ class Context:
         self.skip = False
 
     def exclude_line(self):
-        return self.current_line_index in self.pragma_no_mutate_lines or should_exclude(context=self, config=self.config)
+        return self.current_line_index in self.pragma_no_mutate_lines or self.should_exclude()
 
     @property
     def source(self):
@@ -78,3 +79,23 @@ class Context:
         if self.mutation_id == ALL:
             return True
         return self.mutation_id in (ALL, self.mutation_id_of_current_index)
+
+    def should_exclude(self):
+        if self.config is None or self.config.covered_lines_by_filename is None:
+            return False
+
+        try:
+            covered_lines = self.config.covered_lines_by_filename[self.filename]
+        except KeyError:
+            if self.config.coverage_data is not None:
+                covered_lines = self.config.coverage_data.get(os.path.abspath(self.filename))
+                self.config.covered_lines_by_filename[self.filename] = covered_lines
+            else:
+                covered_lines = None
+
+        if covered_lines is None:
+            return True
+        current_line = self.current_line_index + 1
+        if current_line not in covered_lines:
+            return True
+        return False
