@@ -1,9 +1,5 @@
-import os
-from configparser import ConfigParser
 from dataclasses import dataclass, field
-from functools import wraps
 from typing import Optional, Dict, List, Set
-import toml
 
 
 @dataclass
@@ -31,55 +27,3 @@ class Config:
 
     def __post_init__(self):
         self._default_test_command = self.test_command
-
-
-def should_exclude(context, config: Optional[Config]):
-        if config is None or config.covered_lines_by_filename is None:
-            return False
-
-        try:
-            covered_lines = config.covered_lines_by_filename[context.filename]
-        except KeyError:
-            if config.coverage_data is not None:
-                covered_lines = config.coverage_data.get(os.path.abspath(context.filename))
-                config.covered_lines_by_filename[context.filename] = covered_lines
-            else:
-                covered_lines = None
-
-        if covered_lines is None:
-            return True
-        current_line = context.current_line_index + 1
-        if current_line not in covered_lines:
-            return True
-        return False
-
-
-def config_from_file(**defaults):
-    def config_from_pyproject_toml() -> dict:
-        try:
-            return toml.load('pyproject.toml')['tool']['mutmut']
-        except (FileNotFoundError, KeyError):
-            return {}
-
-    def config_from_setup_cfg() -> dict:
-        config_parser = ConfigParser()
-        config_parser.read('setup.cfg')
-
-        try:
-            return dict(config_parser['mutmut'])
-        except KeyError:
-            return {}
-
-    config = config_from_pyproject_toml() or config_from_setup_cfg()
-
-    def decorator(f):
-        @wraps(f)
-        def wrapper(*args, **kwargs):
-            for k in list(kwargs.keys()):
-                if not kwargs[k]:
-                    kwargs[k] = config.get(k, defaults.get(k))
-            f(*args, **kwargs)
-
-        return wrapper
-
-    return decorator

@@ -1,7 +1,7 @@
 from time import time
 
 from mutmut.tester.tester import Tester
-from mutmut.helpers.progress import print_status
+from mutmut.helpers.progress import Progress
 from mutmut.cache import (
     cached_hash_of_tests,
 )
@@ -30,6 +30,7 @@ class TestSuiteTimer:
             if not self.swallow_output:
                 print(line)
             if not self.no_progress:
+                print_status = Progress.status_printer()
                 print_status('Running...')
             output.append(line)
 

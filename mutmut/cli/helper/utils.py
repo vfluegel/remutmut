@@ -4,7 +4,9 @@ from os.path import isdir
 from pathlib import Path
 from shutil import copy
 from typing import Iterator, List, Optional, Dict
-
+from functools import wraps
+from configparser import ConfigParser
+import toml
 import click
 from glob2 import glob
 
@@ -102,3 +104,34 @@ def read_coverage_data() -> Dict[str, Dict[int, List[str]]]:
     cov.load()
     data = cov.get_data()
     return {filepath: data.contexts_by_lineno(filepath) for filepath in data.measured_files()}
+
+
+def config_from_file(**defaults):
+    def config_from_pyproject_toml() -> dict:
+        try:
+            return toml.load('pyproject.toml')['tool']['mutmut']
+        except (FileNotFoundError, KeyError):
+            return {}
+
+    def config_from_setup_cfg() -> dict:
+        config_parser = ConfigParser()
+        config_parser.read('setup.cfg')
+
+        try:
+            return dict(config_parser['mutmut'])
+        except KeyError:
+            return {}
+
+    config = config_from_pyproject_toml() or config_from_setup_cfg()
+
+    def decorator(f):
+        @wraps(f)
+        def wrapper(*args, **kwargs):
+            for k in list(kwargs.keys()):
+                if not kwargs[k]:
+                    kwargs[k] = config.get(k, defaults.get(k))
+            f(*args, **kwargs)
+
+        return wrapper
+
+    return decorator

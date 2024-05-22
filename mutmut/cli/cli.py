@@ -8,7 +8,7 @@ import click
 
 from mutmut import __version__
 from mutmut.constants import MUTANT_STATUSES
-from mutmut.helpers.config import config_from_file
+from mutmut.cli.helper.utils import config_from_file
 from mutmut.cache import (
     create_html_report,
 )
