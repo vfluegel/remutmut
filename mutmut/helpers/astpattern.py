@@ -63,40 +63,56 @@ class ASTPattern:
 
         # Match type based on the name, so _keyword matches all keywords.
         # Special case for _all that matches everything
-        if pattern.type == 'name' and pattern.value.startswith('_') and pattern.value[1:] in ('any', node.type):
+        if self.is_special_all_case(pattern, node):
             check_value = False
 
         # The advanced case where we've explicitly marked up a node with
         # the accepted types
-        elif id(pattern) in self.marker_type_by_id:
-            if self.marker_type_by_id[id(pattern)] in (pattern.type, 'any'):
-                check_value = False
-                check_children = False  # TODO: really? or just do this for 'any'?
+        elif self.is_marked_up(pattern):
+            check_value = False
+            check_children = False  # TODO: really? or just do this for 'any'?
 
         # Check node type strictly
         elif pattern.type != node.type:
             return False
 
         # Match children
-        if check_children and hasattr(pattern, 'children'):
-            if len(pattern.children) != len(node.children):
+        if self.should_check_value(check_children, 'children', pattern):
+            if not self.match_children(pattern, node, skip_child):
                 return False
 
-            for pattern_child, node_child in zip(pattern.children, node.children):
-                if node_child is skip_child:  # prevent infinite recursion
-                    continue
-
-                if not self.matches(node=node_child, pattern=pattern_child, skip_child=node_child):
-                    return False
-
         # Node value
-        if check_value and hasattr(pattern, 'value'):
+        if self.should_check_value(check_value, 'value', pattern):
             if pattern.value != node.value:
                 return False
 
         # Parent
-        if pattern.parent.type != 'file_input':  # top level matches nothing
-            if skip_child != node:
-                return self.matches(node=node.parent, pattern=pattern.parent, skip_child=node)
+        if pattern.parent.type != 'file_input' and skip_child != node:  # top level matches nothing
+            return self.matches(node=node.parent, pattern=pattern.parent, skip_child=node)
 
         return True
+
+    def match_children(self, pattern, node, skip_child):
+        if len(pattern.children) != len(node.children):
+            return False
+
+        for pattern_child, node_child in zip(pattern.children, node.children):
+            if node_child is skip_child:  # prevent infinite recursion
+                continue
+
+            if not self.matches(node=node_child, pattern=pattern_child, skip_child=node_child):
+                return False
+
+        return True
+
+    @staticmethod
+    def should_check_value(check, attribute, pattern):
+        return check and hasattr(pattern, attribute)
+
+    @staticmethod
+    def is_special_all_case(pattern, node):
+        return pattern.type == 'name' and pattern.value.startswith('_') and pattern.value[1:] in ('any', node.type)
+
+    def is_marked_up(self, pattern):
+        return id(pattern) in self.marker_type_by_id and self.marker_type_by_id[id(pattern)] in (pattern.type, 'any')
+
