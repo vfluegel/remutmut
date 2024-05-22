@@ -2,8 +2,7 @@ from typing import Optional
 
 from mutmut.helpers.config import Config, should_exclude
 from mutmut.helpers.relativemutationid import RelativeMutationID
-
-ALL = RelativeMutationID(filename='%all%', line='%all%', index=-1, line_number=-1)
+from mutmut.constants import ALL
 
 
 class Context:

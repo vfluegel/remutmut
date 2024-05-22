@@ -5,7 +5,8 @@ from typing import Tuple
 
 from parso import parse
 
-from mutmut.helpers.context import Context, ALL
+from mutmut.helpers.context import Context
+from mutmut.constants import ALL
 from mutmut.mutator.mutator_helper import MutatorHelper
 
 from mutmut.mutator.post_order_iterator import PostOrderIterator
