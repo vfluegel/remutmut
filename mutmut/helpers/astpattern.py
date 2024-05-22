@@ -19,40 +19,40 @@ class ASTPattern:
 
         self.markers = []
 
-        def get_leaf(line, column, of_type=None):
-            r = self.module.children[0].get_leaf_for_position((line, column))
-            while of_type is not None and r.type != of_type:
-                r = r.parent
-            return r
-
-        def parse_markers(node):
-            if hasattr(node, '_split_prefix'):
-                for x in node._split_prefix():
-                    parse_markers(x)
-
-            if hasattr(node, 'children'):
-                for x in node.children:
-                    parse_markers(x)
-
-            if node.type == 'comment':
-                line, column = node.start_pos
-                for match in re.finditer(r'\^(?P<value>[^\^]*)', node.value):
-                    name = match.groupdict()['value'].strip()
-                    d = definitions.get(name, {})
-                    assert set(d.keys()) | {'of_type', 'marker_type'} == {'of_type', 'marker_type'}
-                    self.markers.append(dict(
-                        node=get_leaf(line - 1, column + match.start(), of_type=d.get('of_type')),
-                        marker_type=d.get('marker_type'),
-                        name=name,
-                    ))
-
-        parse_markers(self.module)
+        self.parse_markers(self.module)
 
         pattern_nodes = [x['node'] for x in self.markers if x['name'] == 'match' or x['name'] == '']
         if len(pattern_nodes) != 1:
             raise InvalidASTPatternException("Found more than one match node. Match nodes are nodes with an empty name or with the explicit name 'match'")
         self.pattern = pattern_nodes[0]
         self.marker_type_by_id = {id(x['node']): x['marker_type'] for x in self.markers}
+
+    def get_leaf(self, line, column, of_type=None):
+        r = self.module.children[0].get_leaf_for_position((line, column))
+        while of_type is not None and r.type != of_type:
+            r = r.parent
+        return r
+
+    def parse_markers(self, node):
+        if hasattr(node, '_split_prefix'):
+            for x in node._split_prefix():
+                self.parse_markers(x)
+
+        if hasattr(node, 'children'):
+            for x in node.children:
+                self.parse_markers(x)
+
+        if node.type == 'comment':
+            line, column = node.start_pos
+            for match in re.finditer(r'\^(?P<value>[^\^]*)', node.value):
+                name = match.groupdict()['value'].strip()
+                d = self.definitions.get(name, {})
+                assert set(d.keys()) | {'of_type', 'marker_type'} == {'of_type', 'marker_type'}
+                self.markers.append(dict(
+                    node=self.get_leaf(line - 1, column + match.start(), of_type=d.get('of_type')),
+                    marker_type=d.get('marker_type'),
+                    name=name,
+                ))
 
     def matches(self, node, pattern=None, skip_child=None):
         if pattern is None:
