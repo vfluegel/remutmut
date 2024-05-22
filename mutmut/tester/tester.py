@@ -1,7 +1,6 @@
 import multiprocessing
 import os
 from shutil import (
-    move,
     copy,
 )
 from threading import (
@@ -17,7 +16,7 @@ from mutmut.helpers.progress import *
 from mutmut.helpers.relativemutationid import RelativeMutationID
 from mutmut.mutator.mutator import Mutator
 
-from mutmut.queue_manager import QueueManager
+from mutmut.tester.queue_manager import QueueManager
 from mutmut.tester.tester_helper import TesterHelper, SkipException
 
 CYCLE_PROCESS_AFTER = 100
