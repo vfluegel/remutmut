@@ -33,26 +33,31 @@ class ASTPattern:
             r = r.parent
         return r
 
+    def parse_group_of_markers(self, node_list):
+        for node in node_list:
+            self.parse_markers(node)
+
     def parse_markers(self, node):
         if hasattr(node, '_split_prefix'):
-            for x in node._split_prefix():
-                self.parse_markers(x)
+            self.parse_group_of_markers(node._split_prefix())
 
         if hasattr(node, 'children'):
-            for x in node.children:
-                self.parse_markers(x)
+            self.parse_group_of_markers(node.children)
 
         if node.type == 'comment':
-            line, column = node.start_pos
-            for match in re.finditer(r'\^(?P<value>[^\^]*)', node.value):
-                name = match.groupdict()['value'].strip()
-                d = self.definitions.get(name, {})
-                assert set(d.keys()) | {'of_type', 'marker_type'} == {'of_type', 'marker_type'}
-                self.markers.append(dict(
-                    node=self.get_leaf(line - 1, column + match.start(), of_type=d.get('of_type')),
-                    marker_type=d.get('marker_type'),
-                    name=name,
-                ))
+            self.process_comment(node)
+
+    def process_comment(self, node):
+        line, column = node.start_pos
+        for match in re.finditer(r'\^(?P<value>[^\^]*)', node.value):
+            name = match.groupdict()['value'].strip()
+            d = self.definitions.get(name, {})
+            assert set(d.keys()) | {'of_type', 'marker_type'} == {'of_type', 'marker_type'}
+            self.markers.append(dict(
+                node=self.get_leaf(line - 1, column + match.start(), of_type=d.get('of_type')),
+                marker_type=d.get('marker_type'),
+                name=name,
+            ))
 
     def matches(self, node, pattern=None, skip_child=None):
         if pattern is None:
@@ -77,14 +82,13 @@ class ASTPattern:
             return False
 
         # Match children
-        if self.should_check_value(check_children, 'children', pattern):
-            if not self.match_children(pattern, node, skip_child):
-                return False
+        if (self.should_check_value(check_children, 'children', pattern) and
+                not self.match_children(pattern, node, skip_child)):
+            return False
 
         # Node value
-        if self.should_check_value(check_value, 'value', pattern):
-            if pattern.value != node.value:
-                return False
+        if self.should_check_value(check_value, 'value', pattern) and pattern.value != node.value:
+            return False
 
         # Parent
         if pattern.parent.type != 'file_input' and skip_child != node:  # top level matches nothing
