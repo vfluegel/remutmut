@@ -23,6 +23,8 @@ class MutatorIterator(Iterator):
             'copyright',
         ]
 
+        self.special_node_types = ('tfpdef', 'import_from', 'import_name')
+
     def __iter__(self):
         return self
 
@@ -33,9 +35,8 @@ class MutatorIterator(Iterator):
     def _has_next(self):
         return len(self._collections) > 0
 
-    @staticmethod
-    def _is_special_node(node):
-        return node.type in ('tfpdef', 'import_from', 'import_name')
+    def _is_special_node(self, node):
+        return node.type in self.special_node_types
 
     @staticmethod
     def _is_dynamic_import_node(node):
