@@ -75,7 +75,7 @@ class ASTPattern:
         # the accepted types
         elif self.is_marked_up(pattern):
             check_value = False
-            check_children = False  # TODO: really? or just do this for 'any'?
+            check_children = False
 
         # Check node type strictly
         elif pattern.type != node.type:
