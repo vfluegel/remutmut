@@ -8,7 +8,7 @@ class Progress:
     def __init__(self, total, output_legend, no_progress=False):
         self.total = total
         self.output_legend = output_legend
-        self.progress = 0
+        self.currently_tested = 0
         self.skipped = 0
         self.killed_mutants = 0
         self.surviving_mutants = 0
@@ -21,7 +21,7 @@ class Progress:
             return
         print_status = self.status_printer()
         print_status('{}/{}  {} {}  {} {}  {} {}  {} {}  {} {}'.format(
-            self.progress,
+            self.currently_tested,
             self.total,
             self.output_legend["killed"],
             self.killed_mutants,
@@ -48,7 +48,7 @@ class Progress:
             self.skipped += 1
         else:
             raise ValueError('Unknown status returned from run_mutation: {}'.format(status))
-        self.progress += 1
+        self.currently_tested += 1
         self.print()
 
     def compute_exit_code(self, exception: Optional[Exception] = None, ci: bool = False) -> int:
