@@ -100,7 +100,7 @@ class Tester:
             return True
 
         elif command == 'cycle':
-            t = self.create_worker(mp_ctx, test_lock, mutants_queue, results_queue)
+            self.create_worker(mp_ctx, test_lock, mutants_queue, results_queue)
             return False
 
         elif command == 'progress':
