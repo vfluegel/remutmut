@@ -5,8 +5,39 @@ class PostOrderIterator(MutatorIterator):
     def __init__(self, root_node, context):
         super().__init__(root_node, context)
 
+    def _loop_over_children(self, node):
+
+        return_annotation_started = False
+
+        for i, child in enumerate(node.children):
+
+            return_annotation_started = self._get_return_annotation_started(child, return_annotation_started)
+
+            if return_annotation_started:
+                continue
+
+            if self._is_special_node(child):
+                continue
+
+            if self._is_dynamic_import_node(child):
+                continue
+
+            if self._should_update_line_index(child):
+                self._context.current_line_index = child.start_pos[0] - 1
+                self._context.index = 0
+
+            if self._is_a_dunder_whitelist_node(child):
+                continue
+
+            if self._is_pure_annotation(child):
+                continue
+
+            self._collections.insert(len(self._collections) - i, (child, False))
+            self._current_position += 1
+
     def __next__(self):
         while self._has_next():
+
             current, visited = self._collections[self._current_position]
 
             if visited:
@@ -17,37 +48,11 @@ class PostOrderIterator(MutatorIterator):
             if self._root != current:
                 self._context.stack.append(current)
 
-            return_annotation_started = False
-
             self._collections[self._current_position] = (current, True)
 
             if not hasattr(current, 'children'):
                 continue
 
-            for i, child in enumerate(current.children):
-
-                return_annotation_started = self._get_return_annotation_started(child, return_annotation_started)
-
-                if return_annotation_started:
-                    continue
-
-                if self._is_special_node(child):
-                    continue
-
-                if self._is_dynamic_import_node(child):
-                    continue
-
-                if self._should_update_line_index(child):
-                    self._context.current_line_index = child.start_pos[0] - 1
-                    self._context.index = 0
-
-                if self._is_a_dunder_whitelist_node(child):
-                    continue
-
-                if self._is_pure_annotation(child):
-                    continue
-
-                self._collections.insert(len(self._collections) - i, (child, False))
-                self._current_position += 1
+            self._loop_over_children(current)
 
         raise StopIteration
