@@ -103,7 +103,7 @@ class TesterHelper:
         timer.cancel()
         if timed_out:
             raise TimeoutError('In process tests timed out')
-        raise
+        raise KeyboardInterrupt()
 
     def unload_modules(self, modules_before, config: Config):
         modules_to_force_unload = {x.partition(os.sep)[0].replace('.py', '') for x in config.paths_to_mutate}
