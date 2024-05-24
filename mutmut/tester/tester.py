@@ -1,5 +1,6 @@
 import multiprocessing
 import os
+import sys
 from shutil import (
     copy,
 )
@@ -16,7 +17,7 @@ from mutmut.helpers.context import Context
 from mutmut.helpers.progress import Progress
 from mutmut.helpers.relativemutationid import RelativeMutationID
 from mutmut.mutator.mutator import Mutator
-from mutmut.constants import UNTESTED
+from mutmut.constants import UNTESTED, SKIPPED, BAD_TIMEOUT
 
 from mutmut.tester.queue_manager import QueueManager
 from mutmut.tester.tester_helper import TesterHelper, SkipException
