@@ -284,10 +284,10 @@ class Run:
         :param current_hash_of_tests: hash of the tests
         :return: configuration for the mutation testing
         """
-        testSuiteTimer = TestSuiteTimer(swallow_output=not self.swallow_output, test_command=self.runner,
+        test_suite_timer = TestSuiteTimer(swallow_output=not self.swallow_output, test_command=self.runner,
                                         using_testmon=self.using_testmon, no_progress=self.no_progress, )
 
-        baseline_time_elapsed = testSuiteTimer.time_test_suite(current_hash_of_tests)
+        baseline_time_elapsed = test_suite_timer.time_test_suite(current_hash_of_tests)
 
         copy_testmon_data(self.using_testmon)
 
