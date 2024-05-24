@@ -39,7 +39,7 @@ class NumberMutation(Mutation):
             parsed = float(value)
             # This avoids all very small numbers becoming 1.0, and very
             # large numbers not changing at all
-            if (1e-5 < abs(parsed) < 1e5) or (parsed == 0.0):
+            if (1e-5 < abs(parsed) < 1e5) or (parsed == 0):
                 result = repr(parsed + 1)
             else:
                 result = repr(parsed * 2)
